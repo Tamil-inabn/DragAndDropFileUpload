@@ -1,21 +1,19 @@
-﻿using DragAndDrop.Models;
+﻿using DragAndDrop.DbContexts;
+using DragAndDrop.EntityModels;
+using DragAndDrop.Models;
 using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore.Internal;
 using System.Diagnostics;
 
 namespace DragAndDrop.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
-
-        private readonly IWebHostEnvironment _environment;
-
-
-        public HomeController(ILogger<HomeController> logger, IWebHostEnvironment environment)
+        
+        private readonly UploadFileContext _context;
+        public HomeController(UploadFileContext context)
         {
-            _logger = logger;
-            _environment = environment;
+            _context= context;
         }
 
         public IActionResult Index()
@@ -27,19 +25,39 @@ namespace DragAndDrop.Controllers
         {
             if (files != null && files.Length > 0)
             {
-                var filename = "Files";
-                string filePath = Path.Combine(_environment.WebRootPath, filename);
-                if (!Directory.Exists(filePath))
-                {
-                    Directory.CreateDirectory(filePath);
-                }
-                var File = files.FileName;
 
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/upload");
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+                string filename = Path.GetFileName(files.FileName);
+                string Guids = Guid.NewGuid() + Path.GetExtension(files.FileName);
+                using (FileStream stream = new FileStream(Path.Combine(path, Guids), FileMode.Create))
                 {
                     files.CopyTo(stream);
                 }
 
+                Register register = new Register()
+                {
+                    FirstName = "test",
+                    LastName = "test",
+                    Address = "test",
+                    Email = "test@gmail.com",
+                    Mobile = 9876543210,
+                    Gender = "male"
+                };
+                _context.Registers.Add(register);
+                _context.SaveChanges();
+                var id = _context.Registers.OrderByDescending(m => m.Id).First().Id;
+                Attachment attachment = new Attachment()
+                {
+                    Photo = files.FileName,
+                    Document = files.FileName,
+                    No=id
+                };
+                _context.Attachments.Add(attachment);
+                _context.SaveChanges();
                 return Json(new { success = true, message = "File uploaded successfully!" });
             }
 

@@ -1,3 +1,6 @@
+using DragAndDrop.DbContexts;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -7,6 +10,9 @@ builder.Services.Configure<IISServerOptions>(options =>
 {
     options.MaxRequestBodySize = int.MaxValue;
 });
+
+var connection = builder.Configuration.GetConnectionString("Con");
+builder.Services.AddDbContext<UploadFileContext>(m => m.UseSqlServer(connection));
 
 var app = builder.Build();
 
